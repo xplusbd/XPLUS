@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Users Dashboard</title>
+  <style>
+    :root {
+      --base-font-size: 16px;
+      font-size: var(--base-font-size);
+
+      --bg:#070b18; --panel:#0d1328; --fg:#eaf0ff; --muted:#96a3c7;
+      --primary:#6c8cff; --ok:#1ec97f; --warn:#ffcc66; --err:#ff5a78; --live:#37b5ff;
+      --card:#0f1733; --border:rgba(255,255,255,0.08);
+      --radius:0.875rem; --radius-sm:0.625rem; --shadow:0 0.625rem 1.875rem rgba(0,0,0,0.25);
+      --chip-bg: rgba(255,255,255,0.06);
+    }
+    @media (max-width:1100px){:root{font-size:15px;}}
+    @media (max-width:600px){:root{font-size:14px;}}
+    @media (max-width:420px){:root{font-size:13.5px;}}
+
+    *{box-sizing:border-box}
+    body{
+      margin:0; background:linear-gradient(180deg,#070b18,#0a1021);
+      color:var(--fg); font-family: system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,Arial;
+      line-height:1.45;
+    }
+    header{ padding:1rem 1.25rem; position:sticky; top:0; background:rgba(7,11,24,0.8);
+      backdrop-filter:blur(10px); border-bottom:1px solid var(--border); z-index:5; }
+    .title{display:flex;align-items:center;justify-content:space-between;gap:1rem}
+    .title h1{margin:0;font-size:1.25rem}
+    .subtitle{margin:0.25rem 0 0 0;color:var(--muted);font-size:0.95rem}
+
+    main{padding:1rem;display:grid;grid-template-columns:1fr;gap:1rem;max-width:87.5rem;margin:0 auto}
+    .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:1rem}
+    .card{background:linear-gradient(180deg,#0d1328,#0b1122);border:1px solid var(--border);
+      border-radius:var(--radius);box-shadow:var(--shadow);padding:1rem;min-height:auto}
+
+    /* KPI Grid */
+    .kpis{grid-column:1/-1;display:grid;grid-template-columns:repeat(10,1fr);gap:1rem}
+    @media (max-width:1500px){.kpis{grid-template-columns:repeat(8,1fr)}}
+    @media (max-width:1200px){.kpis{grid-template-columns:repeat(6,1fr)}}
+    @media (max-width:900px){.kpis{grid-template-columns:repeat(4,1fr)}}
+    @media (max-width:600px){.kpis{grid-template-columns:repeat(3,1fr)}}
+    @media (max-width:480px){.kpis{grid-template-columns:repeat(2,1fr)}}
+    @media (max-width:360px){.kpis{grid-template-columns:repeat(1,1fr)}}
+
+    .kpi{position:relative;overflow:hidden}
+    .kpi h3{margin:0;font-size:0.9rem;color:var(--muted)}
+    .kpi .val{font-size:2rem;font-weight:800;letter-spacing:0.5px;margin-top:0.15rem}
+    .kpi .spark{position:absolute;right:0.75rem;bottom:0.5rem;width:100px;height:32px;opacity:0.9}
+    .kpi .bubble{position:absolute;inset:auto -20px -30px auto;width:140px;height:140px;border-radius:50%;filter:blur(22px);opacity:0.22;box-shadow:0 8px 30px rgba(0,0,0,0.4)}
+    .kpi.total .bubble{background:var(--primary)}
+    .kpi.active .bubble{background:var(--ok)}
+    .kpi.inactive .bubble{background:var(--err)}
+    .kpi.today .bubble{background:var(--ok)}
+    .kpi.live .bubble{background:var(--live)}
+    .kpi.h72 .bubble{background:#22d3ee}
+    .kpi.h24 .bubble{background:var(--warn)}
+    .kpi.h12 .bubble{background:var(--primary)}
+    .kpi.newusers .bubble{background:var(--ok)}
+    .kpi.lifetime .bubble{background:var(--err)}
+
+    /* Filters Panel */
+    .filters{grid-column:1/-1;display:grid;grid-template-columns:repeat(2,1fr);gap:0.75rem;align-items:start}
+    @media (max-width:800px){.filters{grid-template-columns:1fr}}
+    .filters .row{display:grid;grid-template-columns:repeat(3,1fr);gap:0.75rem}
+    @media (max-width:1200px){.filters .row{grid-template-columns:repeat(2,1fr)}}
+    @media (max-width:700px){.filters .row{grid-template-columns:1fr}}
+    .f{display:flex;align-items:center;gap:0.5rem;padding:0.5rem 0.75rem;background:var(--card);border:1px solid var(--border);border-radius:999px}
+    .f span{color:var(--muted);white-space:nowrap}
+    .filters select,.filters input{background:transparent;color:var(--fg);border:none;outline:none;font-size:0.95rem;min-width:8rem}
+    .filters input[type="date"]{color-scheme:dark}
+
+    /* Analytics Modules */
+    .modules{grid-column:1/-1;display:grid;grid-template-columns:2fr 1fr;gap:1rem}
+    @media (max-width:1100px){.modules{grid-template-columns:1fr}}
+    .module-title{display:flex;align-items:center;justify-content:space-between;margin-bottom:0.5rem}
+    .legend{display:flex;flex-wrap:wrap;gap:0.35rem}
+    .chip{display:inline-flex;align-items:center;gap:0.35rem;background:var(--chip-bg);border:1px solid var(--border);border-radius:999px;padding:0.2rem 0.6rem;font-size:0.825rem}
+    .toggle{display:inline-flex;align-items:center;gap:0.45rem;background:var(--chip-bg);border:1px solid var(--border);border-radius:999px;padding:0.2rem 0.6rem;font-size:0.825rem;cursor:pointer}
+    .toggle input{accent-color:#6c8cff}
+
+    .chart{height:14rem;width:100%}
+
+    /* Users list grid */
+    .users-section{grid-column:1/-1}
+    .toolbar{display:flex;align-items:center;justify-content:space-between;gap:0.5rem;margin-bottom:0.5rem}
+    .sort{display:flex;align-items:center;gap:0.5rem}
+
+    .users-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:0.75rem}
+    @media (max-width:1200px){.users-grid{grid-template-columns:repeat(2,1fr)}}
+    @media (max-width:700px){.users-grid{grid-template-columns:1fr}}
+
+    .user-card{background:linear-gradient(180deg,#0f1733,#0b1328);border:1px dashed var(--border);border-radius:var(--radius-sm);padding:0.75rem;transition:transform .12s ease, box-shadow .2s ease}
+    .user-card:hover{transform:translateY(-1px);box-shadow:0 10px 24px rgba(0,0,0,0.25)}
+    .user-row{display:grid;grid-template-columns:1fr 1fr;gap:0.25rem}
+    .user-row strong{color:#b7c7ff}
+    .user-meta{display:flex;flex-wrap:wrap;gap:0.4rem;margin-top:0.4rem}
+    .tag{display:inline-flex;align-items:center;gap:0.35rem;padding:0.2rem 0.5rem;border-radius:0.5rem;background:rgba(255,255,255,0.06);border:1px solid var(--border);font-size:0.8rem}
+
+    .muted{color:var(--muted)}
+    .small-muted{font-size:0.85rem;color:var(--muted)}
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+<header>
+  <div class="title">
+    <div>
+      <h1>Users Dashboard</h1>
+      <p class="subtitle">Live, Active, Inactive, New — with filters and charts</p>
+    </div>
+    <div class="tag" title="Google Sheet Source"><i>🗂️</i> Sheet: Users Dashboard</div>
+  </div>
+</header>
+<main>
+  <section class="grid">
+    <!-- KPI SUMMARY -->
+    <div class="kpis">
+      <div class="card kpi total" title="Total users"><h3>Total Users</h3><div class="val" id="k_total">0</div><canvas class="spark" id="sp_total"></canvas><div class="bubble"></div></div>
+      <div class="card kpi active" title="Visited in last 30 days 🟣"><h3>Active (≤30d)</h3><div class="val" id="k_active">0</div><canvas class="spark" id="sp_active"></canvas><div class="bubble"></div></div>
+      <div class="card kpi inactive" title="No visit in 30+ days 🔴"><h3>Inactive (>30d)</h3><div class="val" id="k_inactive">0</div><canvas class="spark" id="sp_inactive"></canvas><div class="bubble"></div></div>
+
+      <div class="card kpi today" title="Today's Active"><h3>Today's Active</h3><div class="val" id="k_today">0</div><canvas class="spark" id="sp_today"></canvas><div class="bubble"></div></div>
+      <div class="card kpi live" title="Currently online 🟢"><h3>Current Live</h3><div class="val" id="k_live">0</div><canvas class="spark" id="sp_live"></canvas><div class="bubble"></div></div>
+      <div class="card kpi h72" title="Visited in last 72h 🟢"><h3>Last 72h Active</h3><div class="val" id="k_72h">0</div><canvas class="spark" id="sp_72h"></canvas><div class="bubble"></div></div>
+
+      <div class="card kpi h24" title="Visited in last 24h 🔵"><h3>Last 24h Active</h3><div class="val" id="k_24h">0</div><canvas class="spark" id="sp_24h"></canvas><div class="bubble"></div></div>
+      <div class="card kpi h12" title="Visited in last 12h 🟢"><h3>Last 12h Active</h3><div class="val" id="k_12h">0</div><canvas class="spark" id="sp_12h"></canvas><div class="bubble"></div></div>
+      <div class="card kpi newusers" title="Recently joined 🆕 in last 15 days"><h3>New Users (≤15d)</h3><div class="val" id="k_new">0</div><canvas class="spark" id="sp_new"></canvas><div class="bubble"></div></div>
+      <div class="card kpi lifetime" title="Total visits across sessions"><h3>Lifetime Total Visits</h3><div class="val" id="k_visits">0</div><canvas class="spark" id="sp_visits"></canvas><div class="bubble"></div></div>
+    </div>
+
+    <!-- FILTERS PANEL -->
+    <div class="card filters" id="filters_panel">
+      <div class="row">
+        <label class="f" title="Time Range"><span>🕓 Time Range</span>
+          <select id="f_range" aria-label="Time Range Filter"></select>
+        </label>
+        <label class="f" title="Status"><span>⚙️ Status</span>
+          <select id="f_status" aria-label="Status Filter"></select>
+        </label>
+        <label class="f" title="Country"><span>🌍 Country</span>
+          <select id="f_country" aria-label="Country Filter"></select>
+        </label>
+      </div>
+      <div class="row">
+        <label class="f" title="City"><span>🏙️ City</span>
+          <select id="f_city" aria-label="City Filter"></select>
+        </label>
+        <label class="f" title="IP Address"><span>🔢 IP</span>
+          <select id="f_ip" aria-label="IP Filter"></select>
+        </label>
+        <label class="f" title="Timestamp"><span>⏱️ Timestamp</span>
+          <select id="f_timestamp" aria-label="Timestamp Filter"></select>
+        </label>
+      </div>
+      <div class="row">
+        <label class="f" title="Date From"><span>📅 Date From</span>
+          <input id="f_date_from" type="date" aria-label="Date From" />
+        </label>
+        <label class="f" title="Date To"><span>📅 Date To</span>
+          <input id="f_date_to" type="date" aria-label="Date To" />
+        </label>
+        <label class="f" title="Search UID / Page / IP"><span>🔎 Search</span>
+          <input id="f_search" placeholder="UID / Page / IP / City / Country" aria-label="Search" />
+        </label>
+      </div>
+    </div>
+
+    <!-- ANALYTICS MODULES -->
+    <div class="modules">
+      <div class="card">
+        <div class="module-title"><strong>Activeness Comparison</strong>
+          <div class="legend" id="legend_act"></div>
+        </div>
+        <canvas class="chart" id="chart_active_bar"></canvas>
+        <div style="height:0.5rem"></div>
+        <canvas class="chart" id="chart_active_line"></canvas>
+      </div>
+      <div class="card">
+        <div class="module-title"><strong>New Users Comparison</strong>
+          <div class="legend" id="legend_new"></div>
+        </div>
+        <canvas class="chart" id="chart_new_bar"></canvas>
+        <div style="height:0.5rem"></div>
+        <canvas class="chart" id="chart_new_line"></canvas>
+      </div>
+    </div>
+
+    <!-- ALL-TIME TOTALS (kept) -->
+    <div class="card">
+      <h3>All-time Totals</h3>
+      <div class="muted" id="totals_text">Loading...</div>
+      <canvas class="chart" id="chart_totals"></canvas>
+    </div>
+
+    <!-- USERS LIST SECTION (at the end) -->
+    <div class="users-section">
+      <div class="toolbar">
+        <h3>Users List</h3>
+        <div class="sort"><span class="muted">Sort</span>
+          <select id="sort_by">
+            <option value="recent">Most Recent</option>
+            <option value="visits">Most Visits</option>
+            <option value="oldest">Oldest</option>
+          </select>
+        </div>
+      </div>
+      <div class="small-muted" id="tbl_note">Loading…</div>
+      <div class="users-grid" id="users_grid"></div>
+    </div>
+
+  </section>
+</main>
+
+<script>
+(function(){
+  // API endpoints
+  const APPS_SCRIPT_JSON_URL = 'https://script.google.com/macros/s/AKfycbx9MhZOWF68TgH6XwwYazgBeueWLgJbkjAcHgB5ELYcJ5KCZ_OeXx0dmGTuoGq328w/exec?format=json';
+  const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSIOGb5RBMnQiQ-GiHtkOn5qQhGhQnUmCsVie-jSv6UhvMihSQv1JN03Tr1EtoTIfbLThkSgGzNdwqc/pub?output=csv';
+
+  const byId = id => document.getElementById(id);
+  const D = {
+    range: byId('f_range'), status: byId('f_status'), country: byId('f_country'), city: byId('f_city'),
+    ip: byId('f_ip'), timestamp: byId('f_timestamp'), dateFrom: byId('f_date_from'), dateTo: byId('f_date_to'), search: byId('f_search'),
+    sortBy: byId('sort_by')
+  };
+
+  let RAW_ROWS = [];
+  let normalizedRowsCache = null;
+
+  // State for lazy loading
+  let currentFiltered = [];
+  let renderIndex = 0; // next index to render
+  const PAGE_SIZE = 40;
+
+  // Timeframes config
+  const TIMEFRAMES = [
+    { key: 'today', label: 'Today', days: 1, color: '#86efac' },
+    { key: 'yesterday', label: 'Yesterday', days: 1, offsetDays: 1, color: '#fca5a5' },
+    { key: '7d', label: 'Last 7 Days', days: 7, color: '#60a5fa' },
+    { key: '15d', label: 'Last 15 Days', days: 15, color: '#fbbf24' },
+    { key: '30d', label: 'Last 30 Days', days: 30, color: '#a78bfa' },
+    { key: '3m', label: 'Last 3 Months', days: 90, color: '#34d399' },
+    { key: '6m', label: 'Last 6 Months', days: 180, color: '#f472b6' },
+    { key: '1y', label: 'Last 1 Year', days: 365, color: '#22d3ee' },
+  ];
+
+  const charts = { activeBar:null, activeLine:null, newBar:null, newLine:null };
+
+  // --- Utilities ---
+  function parseDate(s){ if(!s) return null; const d=new Date(s); return isNaN(d)?null:d; }
+  function fmtShort(n){
+    const num = Number(n||0);
+    const abs = Math.abs(num);
+    if (abs < 500) return String(Math.round(num));
+    const map = [ {v:1e9, s:'b'}, {v:1e6, s:'m'}, {v:1e3, s:'k'} ];
+    for (const {v,s} of map){ if (abs >= v){ const r = (num / v).toFixed(2); return (r.replace(/\.0+$|(?<=\..*)0+$/g,'') + s); } }
+    return String(Math.round(num));
+  }
+  function daysBetween(a,b){ if(!a||!b) return Infinity; return Math.abs(b.getTime()-a.getTime())/(1000*60*60*24); }
+  function hoursBetween(a,b){ if(!a||!b) return Infinity; return Math.abs(b.getTime()-a.getTime())/(1000*60*60); }
+  function startOfDay(d){ return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
+  function addDays(d, n){ const x = new Date(d); x.setDate(x.getDate()+n); return x; }
+  function escapeHtml(text){ return String(text||'').replace(/[&<>"'`=\/]/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;','/':'&#x2F;','`':'&#x60;','=':'&#x3D;'}[s]); }
+
+  function norm(r){
+    const now = new Date();
+    const first = parseDate(r['First Visit DateTime'] || r.FirstVisit);
+    const last = parseDate(r['Last Visit DateTime'] || r.LastVisit || r.Timestamp);
+    const daysSince = last ? daysBetween(last, now) : Infinity;
+    const hoursSince = last ? hoursBetween(last, now) : Infinity;
+    const ageDays = first ? daysBetween(first, now) : Infinity;
+
+    const userStatusText = r['User Status (Text)'] || '';
+    const liveIcon = r['Live Status Icon'] || '';
+
+    let status = 'inactive', icon = '🔴';
+    if (liveIcon === '🟢') { status = 'live'; icon = '🟢'; }
+    else if ((userStatusText||'').toLowerCase() === 'new' || ageDays <= 15) { status = 'new'; icon = '🆕'; }
+    else if (hoursSince <= 24) { status = 'active-24h'; icon = '🔵'; }
+    else if ((userStatusText||'').toLowerCase() === 'active' || daysSince <= 30) { status = 'active'; icon = '🟣'; }
+
+    return {
+      uid: r['Unique User ID'] || r.UID || '',
+      timestamp: r['Timestamp'] || '',
+      firstVisit: r['First Visit DateTime'] || '',
+      lastVisit: r['Last Visit DateTime'] || '',
+      ip: r['IP Address'] || '',
+      city: r['City'] || '',
+      country: r['Country'] || '',
+      lastDuration: Number(r['Last Visited Duration (minutes)'] || 0) || 0,
+      totalDuration: Number(r['Total Visited Duration (minutes)'] || 0) || 0,
+      totalVisits: Number(r['Total Visit Count'] || 0) || 0,
+      repeatType: r['Repeat Visit Type'] || '',
+      icon, status,
+      page: r['Last Visited Page / Section Name'] || '',
+      userStatusText, liveIcon,
+    };
+  }
+  function getRows(){ if (normalizedRowsCache) return normalizedRowsCache; normalizedRowsCache = RAW_ROWS.map(norm); return normalizedRowsCache; }
+
+  // --- KPI computation (always global, not filtered) ---
+  function computeKPIs(){
+    const rows = getRows();
+    const now = new Date();
+    const todayStart = startOfDay(now);
+
+    const total = rows.length;
+    const active30 = rows.filter(r => r.lastVisit && daysBetween(new Date(r.lastVisit), now) <= 30).length;
+    const inactive = rows.filter(r => r.lastVisit && daysBetween(new Date(r.lastVisit), now) > 30 || !r.lastVisit).length;
+    const live = rows.filter(r => r.liveIcon === '🟢' || r.status === 'live').length;
+    const last72 = rows.filter(r => r.lastVisit && hoursBetween(new Date(r.lastVisit), now) <= 72).length;
+    const last24 = rows.filter(r => r.lastVisit && hoursBetween(new Date(r.lastVisit), now) <= 24).length;
+    const last12 = rows.filter(r => r.lastVisit && hoursBetween(new Date(r.lastVisit), now) <= 12).length;
+    const todayCount = rows.filter(r => { const lv = r.lastVisit ? new Date(r.lastVisit) : null; return lv && lv >= todayStart; }).length;
+    const newUsers = rows.filter(r => r.firstVisit && daysBetween(new Date(r.firstVisit), now) <= 15).length;
+    const totalVisitsAll = rows.reduce((a, r) => a + (r.totalVisits || 0), 0);
+
+    setShortNum('k_total', total);
+    setShortNum('k_active', active30);
+    setShortNum('k_inactive', inactive);
+    setShortNum('k_live', live);
+    setShortNum('k_72h', last72);
+    setShortNum('k_24h', last24);
+    setShortNum('k_12h', last12);
+    setShortNum('k_today', todayCount);
+    setShortNum('k_new', newUsers);
+    setShortNum('k_visits', totalVisitsAll);
+
+    // totals text
+    const totalMinutesAll = rows.reduce((a, r) => a + (r.totalDuration || 0), 0);
+    byId('totals_text').textContent = `All-time visits (sessions): ${fmtShort(totalVisitsAll)} | Minutes: ${fmtShort(Math.round(totalMinutesAll))}`;
+
+    // Sparks
+    spark('sp_total', [total, Math.max(1, Math.round(total*0.7)), Math.max(1, Math.round(total*0.9)), total]);
+    spark('sp_active', [active30, Math.max(0, active30-2), active30+1, active30]);
+    spark('sp_inactive', [inactive, Math.max(0, inactive-1), inactive+2, inactive]);
+    spark('sp_today', [todayCount, Math.max(0, todayCount-1), todayCount+1, todayCount]);
+    spark('sp_live', [live, Math.max(0, live-1), live+1, live]);
+    spark('sp_72h', [last72, Math.max(0, last72-2), last72+1, last72]);
+    spark('sp_24h', [last24, Math.max(0, last24-2), last24+1, last24]);
+    spark('sp_12h', [last12, Math.max(0, last12-1), last12+2, last12]);
+    spark('sp_new', [newUsers, Math.max(0, newUsers-1), newUsers+1, newUsers]);
+    spark('sp_visits', [totalVisitsAll || 0, Math.max(0, Math.round(totalVisitsAll * 0.95)), totalVisitsAll + 10, totalVisitsAll || 0]);
+  }
+
+  // Animated short number
+  function setShortNum(elId, end){
+    const el = byId(elId);
+    const start = Number((el.dataset.raw||'0')) || 0;
+    const diff = Math.abs(end - start);
+    const dur = Math.min(800, 350 + Math.sqrt(diff) * 15);
+    const t0 = performance.now();
+    function step(t){
+      const p = Math.min(1, (t - t0) / dur);
+      const eased = 1 - Math.pow(1 - p, 3);
+      const v = Math.round(start + (end - start) * eased);
+      el.dataset.raw = String(end);
+      el.textContent = fmtShort(v);
+      if (p < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+
+  // Small spark line
+  function spark(elId, data){
+    const c = byId(elId); if(!c) return;
+    const ctx = c.getContext('2d');
+    const w = c.width = c.clientWidth * devicePixelRatio;
+    const h = c.height = c.clientHeight * devicePixelRatio;
+    ctx.clearRect(0,0,w,h);
+    if (!data || !data.length) return;
+    let min = Math.min(...data), max = Math.max(...data);
+    if (min === max) { min -= 1; max += 1; }
+    const pad = 4 * devicePixelRatio;
+    ctx.lineWidth = 2 * devicePixelRatio;
+    ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+    ctx.beginPath();
+    data.forEach((v,i)=>{
+      const x = pad + (i/Math.max(1,data.length-1))*(w - pad*2);
+      const y = pad + (1 - ((v - min)/(max - min))) * (h - pad*2);
+      if (i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    });
+    ctx.stroke();
+  }
+
+  // All-time totals bar chart
+  function chartTotals(rows){
+    const c = byId('chart_totals'); if(!c) return;
+    const ctx = c.getContext('2d');
+    const w = c.width = c.clientWidth * devicePixelRatio;
+    const h = c.height = c.clientHeight * devicePixelRatio;
+    ctx.clearRect(0,0,w,h);
+    const buckets = { '≤24h':0, '≤7d':0, '≤30d':0, '>30d':0 };
+    const now = new Date();
+    rows.forEach(r => {
+      const lv = r.lastVisit ? new Date(r.lastVisit) : null;
+      if (!lv) { buckets['>30d']++; return; }
+      const days = daysBetween(lv, now);
+      if (days <= 1) buckets['≤24h']++; else if (days <= 7) buckets['≤7d']++; else if (days <= 30) buckets['≤30d']++; else buckets['>30d']++;
+    });
+    const keys = Object.keys(buckets);
+    const vals = keys.map(k => buckets[k]);
+    const maxv = Math.max(...vals, 1);
+    const pad = 40 * devicePixelRatio;
+    const availableW = w - pad*2;
+    const barW = Math.min(140*devicePixelRatio, (availableW - (keys.length-1)*20*devicePixelRatio)/keys.length);
+    keys.forEach((k, i) => {
+      const v = vals[i];
+      const x = pad + i*(barW + 30*devicePixelRatio);
+      const y = h - pad;
+      const bh = Math.max(6*devicePixelRatio, (v / maxv) * (h - pad*2));
+      ctx.fillStyle = 'rgba(108,140,255,0.12)';
+      ctx.fillRect(x, y - bh, barW, bh);
+      ctx.fillStyle = '#6c8cff';
+      ctx.fillRect(x, y - bh, barW, Math.min(8*devicePixelRatio, bh));
+      ctx.fillStyle = 'rgba(255,255,255,0.9)';
+      ctx.font = `${12 * devicePixelRatio}px system-ui`;
+      ctx.textAlign = 'center';
+      ctx.fillText(String(v), x + barW/2, y - bh - 10 * devicePixelRatio);
+      ctx.fillStyle = 'rgba(255,255,255,0.65)';
+      ctx.fillText(k, x + barW/2, y + 18 * devicePixelRatio);
+    });
+  }
+
+  // Build filter selects from API filters block
+  function populateFilters(filters){
+    function fillSelect(sel, values, anyLabel='(Any)'){
+      sel.innerHTML = '';
+      const optAny = document.createElement('option');
+      optAny.value = ''; optAny.textContent = anyLabel; sel.appendChild(optAny);
+      (values || []).forEach(v => { const o=document.createElement('option'); o.value=String(v); o.textContent=String(v); sel.appendChild(o); });
+    }
+    fillSelect(D.range, (filters.timeRange || ['All','Today','Last 7 Days','Last 15 Days','Last 30 Days','Last 3 Months','Last 6 Months','Last 1 Year']), 'All');
+    fillSelect(D.status, (filters.status || ['Active','Inactive','New','Returning']), '(Any)');
+    fillSelect(D.country, filters.country || [], '(Any)');
+    fillSelect(D.city, filters.city || [], '(Any)');
+    fillSelect(D.ip, filters.ip || [], '(Any)');
+    fillSelect(D.timestamp, filters.timestamp || [], '(Any)');
+  }
+
+  // Filtering
+  function applyFilters(rows){
+    const q = (D.search.value || '').toLowerCase().trim();
+    const s = D.status.value; // '', Active, Inactive, New, Returning
+    const range = D.range.value; // 'All', 'Today', 'Last 7 Days', ...
+    const ctry = (D.country.value || '');
+    const cty = (D.city.value || '');
+    const ip = (D.ip.value || '');
+    const ts = (D.timestamp.value || '');
+    const dateFrom = D.dateFrom.value ? new Date(D.dateFrom.value) : null;
+    const dateTo = D.dateTo.value ? addDays(new Date(D.dateTo.value), 1) : null; // inclusive end
+
+    const now = new Date();
+    const cutoff = (()=>{
+      switch (range){
+        case 'Today': return { from: startOfDay(now), to: now };
+        case 'Last 7 Days': return { from: addDays(now, -7), to: now };
+        case 'Last 15 Days': return { from: addDays(now, -15), to: now };
+        case 'Last 30 Days': return { from: addDays(now, -30), to: now };
+        case 'Last 3 Months': return { from: addDays(now, -90), to: now };
+        case 'Last 6 Months': return { from: addDays(now, -180), to: now };
+        case 'Last 1 Year': return { from: addDays(now, -365), to: now };
+        default: return null;
+      }
+    })();
+
+    return rows.filter(r => {
+      if (s){
+        if (s === 'Returning') { if ((r.repeatType || '').toLowerCase() !== 'returning') return false; }
+        else {
+          // map: Active includes active, active-24h, live
+          if (s === 'Active' && !(r.status === 'active' || r.status === 'active-24h' || r.status === 'live')) return false;
+          if (s === 'Inactive' && r.status !== 'inactive') return false;
+          if (s === 'New' && r.status !== 'new') return false;
+        }
+      }
+      if (ctry && r.country !== ctry) return false;
+      if (cty && r.city !== cty) return false;
+      if (ip && r.ip !== ip) return false;
+      if (ts && r.timestamp !== ts) return false;
+      if (cutoff){
+        const lv = r.lastVisit ? new Date(r.lastVisit) : null;
+        if (!lv || lv < cutoff.from || lv > cutoff.to) return false;
+      }
+      if (dateFrom){
+        const fv = r.firstVisit ? new Date(r.firstVisit) : null;
+        if (!fv || fv < dateFrom) return false;
+      }
+      if (dateTo){
+        const lv2 = r.lastVisit ? new Date(r.lastVisit) : null;
+        if (!lv2 || lv2 >= dateTo) return false;
+      }
+      if (q){
+        const hay = (r.uid+' '+r.page+' '+r.ip+' '+r.city+' '+r.country).toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }
+
+  // Users grid rendering with pagination
+  function clearUsersGrid(){ byId('users_grid').innerHTML=''; renderIndex = 0; }
+  function renderNextPage(){
+    const grid = byId('users_grid');
+    const end = Math.min(currentFiltered.length, renderIndex + PAGE_SIZE);
+    for (let i = renderIndex; i < end; i++){
+      const r = currentFiltered[i];
+      const ageStr = formatAge(r.firstVisit);
+      const lastStr = r.lastVisit ? formatDateTime(r.lastVisit) : '';
+      const firstStr = r.firstVisit ? formatDateTime(r.firstVisit) : '';
+      const card = document.createElement('div');
+      card.className = 'user-card';
+      card.innerHTML = `
+        <div class="user-row"><div><strong>UID</strong></div><div class="muted">${escapeHtml(r.uid)}</div></div>
+        <div class="user-row"><div><strong>Timestamp</strong></div><div class="muted">${escapeHtml(r.timestamp)}</div></div>
+        <div class="user-row"><div><strong>First Visited</strong></div><div class="muted">${escapeHtml(firstStr)}</div></div>
+        <div class="user-row"><div><strong>Last Visited</strong></div><div class="muted">${escapeHtml(lastStr)}</div></div>
+        <div class="user-row"><div><strong>Account Age</strong></div><div class="muted">${escapeHtml(ageStr)}</div></div>
+        <div class="user-meta">
+          <span class="tag">${r.icon || ''} ${(r.userStatusText||r.status||'').toString()}</span>
+          <span class="tag">🧭 ${escapeHtml(r.country || '')}</span>
+          <span class="tag">🏙️ ${escapeHtml(r.city || '')}</span>
+          <span class="tag">🔢 ${escapeHtml(r.ip || '')}</span>
+          <span class="tag">🔁 ${fmtShort(r.totalVisits||0)} visits</span>
+          <span class="tag">⏱️ ${fmtShort(Math.round(r.totalDuration||0))} min</span>
+        </div>
+      `;
+      grid.appendChild(card);
+    }
+    byId('tbl_note').textContent = `Showing ${Math.min(end, currentFiltered.length).toLocaleString()} of ${currentFiltered.length.toLocaleString()} users`;
+    renderIndex = end;
+  }
+  function formatDateTime(iso){ const d=new Date(iso); if (isNaN(d)) return iso||''; const y=d.getFullYear(); const m=String(d.getMonth()+1).padStart(2,'0'); const da=String(d.getDate()).padStart(2,'0'); const h=String(d.getHours()).padStart(2,'0'); const mi=String(d.getMinutes()).padStart(2,'0'); return `${y}-${m}-${da} ${h}:${mi}`; }
+  function formatAge(first){ if(!first) return ''; const d=new Date(first); if (isNaN(d)) return ''; const now=new Date(); const days=Math.floor(daysBetween(d, now)); if (days<30) return `${days}d`; const months=Math.floor(days/30); if (months<12) return `${months}mo`; const years=Math.floor(months/12); const rem=months%12; return rem?`${years}y ${rem}mo`:`${years}y`; }
+
+  // Sorting
+  function sortRows(rows){
+    const mode = D.sortBy.value || 'recent';
+    const copy = rows.slice();
+    if (mode === 'recent') copy.sort((a,b)=> new Date(b.lastVisit||b.timestamp||0) - new Date(a.lastVisit||a.timestamp||0));
+    else if (mode === 'visits') copy.sort((a,b)=> (b.totalVisits||0) - (a.totalVisits||0));
+    else if (mode === 'oldest') copy.sort((a,b)=> new Date(a.firstVisit||a.timestamp||0) - new Date(b.firstVisit||b.timestamp||0));
+    return copy;
+  }
+
+  // Debounce helper
+  function debounce(fn, wait){ let t; return function(...a){ clearTimeout(t); t = setTimeout(()=>fn.apply(this,a), wait); }; }
+
+  // Bind filter changes
+  function bindFilters(){
+    const handler = debounce(() => { recomputeFiltered(); }, 200);
+    Object.values(D).forEach(el => { if (!el) return; el.addEventListener('input', handler); el.addEventListener('change', handler); });
+    window.addEventListener('scroll', onScrollLoadMore, { passive:true });
+  }
+
+  function onScrollLoadMore(){
+    const scrollBottom = window.innerHeight + window.scrollY >= (document.body.offsetHeight - 200);
+    if (scrollBottom) renderNextPage();
+  }
+
+  function recomputeFiltered(){
+    const rows = getRows();
+    const filtered = applyFilters(rows);
+    currentFiltered = sortRows(filtered);
+    clearUsersGrid();
+    renderNextPage();
+    updateAnalyticsCharts(rows); // charts use global rows; they are comparative of whole dataset; could switch to filtered by choice
+  }
+
+  // Analytics charts
+  function updateAnalyticsCharts(rows){
+    const now = new Date();
+    const labels = TIMEFRAMES.map(t => t.label);
+
+    function windowFor(tf){
+      if (tf.key === 'yesterday'){
+        const end = startOfDay(now);
+        const start = addDays(end, -1);
+        return { start, end };
+      }
+      const end = now;
+      const start = addDays(now, -(tf.days + (tf.offsetDays||0)));
+      if (tf.offsetDays) { // previous windows are computed separately for deltas
+        return { start: addDays(now, -tf.offsetDays), end: now };
+      }
+      return { start, end };
+    }
+
+    function prevWindowFor(tf){
+      if (tf.key === 'yesterday'){
+        const end = startOfDay(now);
+        const start = addDays(end, -1);
+        const prevEnd = start;
+        const prevStart = addDays(prevEnd, -1);
+        return { start: prevStart, end: prevEnd };
+      }
+      const end = now;
+      const start = addDays(now, -tf.days);
+      const prevEnd = start;
+      const prevStart = addDays(prevEnd, -tf.days);
+      return { start: prevStart, end: prevEnd };
+    }
+
+    function countActives(win){
+      return rows.filter(r => r.lastVisit && new Date(r.lastVisit) >= win.start && new Date(r.lastVisit) < win.end).length;
+    }
+    function countNew(win){
+      return rows.filter(r => r.firstVisit && new Date(r.firstVisit) >= win.start && new Date(r.firstVisit) < win.end).length;
+    }
+
+    const actCounts = TIMEFRAMES.map(tf => countActives(windowFor(tf)));
+    const actPrev = TIMEFRAMES.map(tf => countActives(prevWindowFor(tf)));
+    const newCounts = TIMEFRAMES.map(tf => countNew(windowFor(tf)));
+    const newPrev = TIMEFRAMES.map(tf => countNew(prevWindowFor(tf)));
+
+    const togglesAct = buildToggles('legend_act', TIMEFRAMES, (idx, on)=>{ toggleDataset(charts.activeBar, idx, on); toggleDataset(charts.activeLine, idx, on); });
+    const togglesNew = buildToggles('legend_new', TIMEFRAMES, (idx, on)=>{ toggleDataset(charts.newBar, idx, on); toggleDataset(charts.newLine, idx, on); });
+
+    // Build charts (one dataset per timeframe for distinct colors)
+    if (!charts.activeBar) charts.activeBar = makeComboChart('chart_active_bar', labels, TIMEFRAMES, actCounts, actPrev, 'bar');
+    else updateComboChart(charts.activeBar, labels, TIMEFRAMES, actCounts, actPrev);
+
+    if (!charts.activeLine) charts.activeLine = makeComboChart('chart_active_line', labels, TIMEFRAMES, actCounts, actPrev, 'line');
+    else updateComboChart(charts.activeLine, labels, TIMEFRAMES, actCounts, actPrev);
+
+    if (!charts.newBar) charts.newBar = makeComboChart('chart_new_bar', labels, TIMEFRAMES, newCounts, newPrev, 'bar');
+    else updateComboChart(charts.newBar, labels, TIMEFRAMES, newCounts, newPrev);
+
+    if (!charts.newLine) charts.newLine = makeComboChart('chart_new_line', labels, TIMEFRAMES, newCounts, newPrev, 'line');
+    else updateComboChart(charts.newLine, labels, TIMEFRAMES, newCounts, newPrev);
+
+    // Ensure toggles reflect
+    togglesAct.forEach((t, i)=> setDatasetHidden(charts.activeBar, i, !t.checked));
+    togglesAct.forEach((t, i)=> setDatasetHidden(charts.activeLine, i, !t.checked));
+    togglesNew.forEach((t, i)=> setDatasetHidden(charts.newBar, i, !t.checked));
+    togglesNew.forEach((t, i)=> setDatasetHidden(charts.newLine, i, !t.checked));
+  }
+
+  function buildToggles(containerId, timeframes, onToggle){
+    const cont = byId(containerId); cont.innerHTML='';
+    return timeframes.map((tf, idx)=>{
+      const lb = document.createElement('label'); lb.className='toggle';
+      const cb = document.createElement('input'); cb.type='checkbox'; cb.checked=true; cb.addEventListener('change', ()=> onToggle(idx, cb.checked));
+      const dot = document.createElement('span'); dot.textContent = '●'; dot.style.color = tf.color;
+      const txt = document.createElement('span'); txt.textContent = tf.label;
+      lb.appendChild(cb); lb.appendChild(dot); lb.appendChild(txt); cont.appendChild(lb);
+      return cb;
+    });
+  }
+
+  function makeComboChart(canvasId, labels, timeframes, vals, prevVals, kind){
+    const ctx = byId(canvasId).getContext('2d');
+    const datasets = timeframes.map((tf, i)=>({
+      type: kind,
+      label: tf.label,
+      data: labels.map((_, j)=> j===i? vals[i] : null),
+      backgroundColor: tf.color + (kind==='bar' ? '88' : ''),
+      borderColor: tf.color,
+      borderWidth: 2,
+      tension: 0.35,
+      hidden: false,
+    }));
+    const config = {
+      data: { labels, datasets },
+      options: {
+        maintainAspectRatio: false,
+        animation: { duration: 400 },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: function(ctx){
+                const i = ctx.datasetIndex;
+                const cur = vals[i] || 0;
+                const prev = prevVals[i] || 0;
+                const pct = prev ? (((cur - prev)/prev) * 100) : (cur?100:0);
+                const sign = (prev && cur!==prev) ? (pct>=0?'+':'') : '';
+                return `${ctx.dataset.label}: ${fmtShort(cur)} (${sign}${pct.toFixed(1)}%)`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: { ticks: { color: 'rgba(255,255,255,0.75)' }, grid: { color:'rgba(255,255,255,0.06)'} },
+          y: { ticks: { color: 'rgba(255,255,255,0.75)', callback:(v)=>fmtShort(v) }, grid: { color:'rgba(255,255,255,0.06)'} }
+        }
+      }
+    };
+    return new Chart(ctx, config);
+  }
+  function updateComboChart(chart, labels, timeframes, vals, prevVals){
+    chart.data.labels = labels;
+    chart.data.datasets.forEach((ds, i)=>{
+      ds.data = labels.map((_, j)=> j===i? vals[i] : null);
+    });
+    chart.update();
+  }
+  function setDatasetHidden(chart, idx, hidden){ chart.data.datasets[idx].hidden = hidden; chart.update(); }
+  function toggleDataset(chart, idx, on){ setDatasetHidden(chart, idx, !on); }
+
+  // Data fetchers
+  function fetchCSV(text){
+    const lines = text.split(/\r?\n/).filter(Boolean);
+    if (lines.length < 2) return [];
+    const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g,''));
+    const rows = [];
+    for (let i = 1; i < lines.length; i++){
+      const cols = parseCsvLine(lines[i]);
+      if (cols.length === 0) continue;
+      const obj = {}; headers.forEach((h, idx) => { obj[h] = cols[idx] !== undefined ? cols[idx].trim().replace(/^"|"$/g,'') : ''; });
+      rows.push(obj);
+    }
+    return rows;
+  }
+  function parseCsvLine(line){
+    const result = []; let cur = '', inQuotes = false;
+    for (let i=0;i<line.length;i++){
+      const ch = line[i];
+      if (ch === '"' ) { if (inQuotes && line[i+1] === '"') { cur += '"'; i++; continue; } inQuotes = !inQuotes; continue; }
+      if (ch === ',' && !inQuotes) { result.push(cur); cur = ''; continue; }
+      cur += ch;
+    }
+    result.push(cur); return result;
+  }
+
+  function fetchData(){
+    byId('totals_text').textContent = 'Loading data...';
+    normalizedRowsCache = null;
+
+    const cached = sessionStorage.getItem('users_rows_cache');
+    if (cached) { try { RAW_ROWS = JSON.parse(cached); } catch(_){} }
+
+    fetch(APPS_SCRIPT_JSON_URL, { cache: 'no-cache' })
+      .then(r => { if (!r.ok) throw new Error('JSON endpoint not ok: ' + r.status); return r.json(); })
+      .then(j => {
+        const rows = j.rows || j.data || j.result || [];
+        RAW_ROWS = rows;
+        sessionStorage.setItem('users_rows_cache', JSON.stringify(RAW_ROWS));
+        populateFilters(j.filters || {});
+        computeKPIs();
+        chartTotals(getRows());
+        recomputeFiltered();
+      })
+      .catch(e => {
+        console.warn('Apps Script JSON failed, trying CSV fallback:', e);
+        fetch(CSV_URL, { cache: 'no-cache' })
+          .then(r => { if (!r.ok) throw new Error('CSV fetch failed: ' + r.status); return r.text(); })
+          .then(txt => {
+            RAW_ROWS = fetchCSV(txt);
+            computeKPIs();
+            chartTotals(getRows());
+            // With CSV fallback, filters must be built client-side
+            populateFilters(buildClientFilters(RAW_ROWS));
+            recomputeFiltered();
+          })
+          .catch(err => {
+            byId('totals_text').textContent = 'Failed to load data (Apps Script & CSV failed). Check URLs & CORS.';
+            console.error('Failed to load data from both sources:', err);
+          });
+      });
+  }
+
+  function buildClientFilters(rows){
+    const uniq = arr => Array.from(new Set((arr||[]).filter(v => v != null && String(v).trim() !== '')));
+    return {
+      timeRange: ['All','Today','Last 7 Days','Last 15 Days','Last 30 Days','Last 3 Months','Last 6 Months','Last 1 Year'],
+      status: ['Active','Inactive','New','Returning'],
+      country: uniq(rows.map(r=>r['Country']||r.country)).sort(),
+      city: uniq(rows.map(r=>r['City']||r.city)).sort(),
+      ip: uniq(rows.map(r=>r['IP Address']||r.ip)),
+      timestamp: uniq(rows.map(r=>r['Timestamp']||r.timestamp)).slice(0,200)
+    };
+  }
+
+  // Resize redraws charts/totals/sparks
+  window.addEventListener('resize', debounce(()=>{ computeKPIs(); chartTotals(getRows()); updateAnalyticsCharts(getRows()); }, 250));
+
+  // Kickoff
+  bindFilters();
+  fetchData();
+})();
+</script>
+</body>
+</html>
